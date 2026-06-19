@@ -1,0 +1,68 @@
+version: "3.9"
+
+# FlowEngine MVP — docker-compose skeleton
+# Covers T5 (skeleton) + T8 (RabbitMQ stood up).
+# Postgres services are placeholders here — real schemas land in T21/T28/T34.
+
+services:
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: flowengine-rabbitmq
+    ports:
+      - "5672:5672"    # AMQP port — services connect here
+      - "15672:15672"  # Management UI — http://localhost:15672
+    environment:
+      RABBITMQ_DEFAULT_USER: flowengine
+      RABBITMQ_DEFAULT_PASS: flowengine_dev
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - flowengine-net
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: flowengine-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: flowengine
+      POSTGRES_PASSWORD: flowengine_dev
+      POSTGRES_DB: flowengine
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flowengine"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - flowengine-net
+
+  # Dummy service — proves the stack boots end-to-end (T5 acceptance check).
+  # Replace/remove once real services (Input Processing, Inventory, Billing,
+  # Order Tracking) are built in Phases 2-5.
+  dummy-service:
+    image: alpine:3.20
+    container_name: flowengine-dummy
+    command: ["sh", "-c", "echo 'FlowEngine stack is up.' && sleep infinity"]
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - flowengine-net
+
+networks:
+  flowengine-net:
+    driver: bridge
+
+volumes:
+  rabbitmq_data:
+  postgres_data:
