@@ -1,5 +1,3 @@
-version: "3.9"
-
 # FlowEngine MVP — docker-compose skeleton
 # Covers T5 (skeleton) + T8 (RabbitMQ stood up).
 # Postgres services are placeholders here — real schemas land in T21/T28/T34.
